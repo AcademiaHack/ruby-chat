@@ -11,16 +11,9 @@ class Server
     loop {
         Thread.start(@server.accept) do |client|
           nick = client.gets.chomp.to_sym
-          unless available_nick nick
-            client.puts 'Nick already exists'
-            client.close
+          unless take_nick nick, client
             Thread.kill self
           end
-
-          puts "#{nick} -> #{client}"
-          @clients[nick] = client
-          client.puts 'Connected'
-
           client_listener nick, client
         end
     }
@@ -29,13 +22,21 @@ class Server
 
   private
 
-  def available_nick nick
-    !@clients.has_key? nick
+  def take_nick nick, client
+    if value = (!@clients.has_key? nick)
+      @clients[nick] = client
+      puts "#{nick} -> #{client}"
+      client.puts 'Connected'
+    else
+      client.puts 'Nick already exists'
+      client.close
+    end
+    value
   end
 
   def client_listener nick, client
+    puts 'In client loop'
     loop do
-      puts 'jodeeer'
       message = client.gets.chomp
       puts "#{nick} say: #{message}"
 
